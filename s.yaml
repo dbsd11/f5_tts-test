@@ -8,6 +8,7 @@ access: "{{ access }}"
 vars:
   region: "cn-hangzhou" 
   service_domain: ${env(service_domain)}
+  cert_id: ${env(cert_id)}
 
 services:
   f5_tts: # 业务名称/模块名称
@@ -101,6 +102,7 @@ services:
       customDomains:
         - domainName: ${vars.service_domain}
           protocol: HTTP,HTTPS
+          certId: ${vars.cert_id}
           routeConfigs:
             - path: /*
               serviceName: f5_tts
