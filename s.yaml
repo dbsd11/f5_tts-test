@@ -110,15 +110,3 @@ services:
               serviceName: f5_tts
               functionName: f5_tts-api
               qualifier: LATEST
-      triggers:
-        - name: httpTrigger
-          type: http
-          config:
-            authType: anonymous
-            methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - HEAD
-              - OPTIONS
