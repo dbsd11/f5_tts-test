@@ -40,12 +40,14 @@ services:
         codeUri: '.'
         runtime: custom-container
         timeout: 7200
-        caPort: 11434
+        caPort: 8080
         environmentVariables:
           HF_HOME: /mnt/f5_tts-models
           HF_ENDPOINT: https://hf-mirror.com/
         customContainerConfig: 
           image: "registry.cn-hangzhou.aliyuncs.com/dbsnolimit/linux_amd64_f5-tts:main"
+          command: "f5-tts_infer-gradio"
+          args: "--port 8080 --host 0.0.0.0"
         customHealthCheckConfig:
           failureThreshold: 120
           httpGetUrl: /
