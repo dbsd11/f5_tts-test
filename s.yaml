@@ -28,7 +28,7 @@ services:
         vpcConfig: auto
         ossMountConfig: 
           mountPoints: 
-            - bucketName: f5_tts-test
+            - bucketName: f5tts-test
               bucketPath: /models
               endpoint: https://oss-cn-hangzhou-internal.aliyuncs.com
               mountDir: /mnt/f5_tts-models
