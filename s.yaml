@@ -1,0 +1,120 @@
+edition: 1.0.0          #  命令行YAML规范版本，遵循语义化版本（Semantic Versioning）规范
+name: framework         #  项目名称
+# access 是当前应用所需要的密钥信息配置：
+# 密钥配置可以参考：https://www.serverless-devs.com/serverless-devs/command/config
+# 密钥使用顺序可以参考：https://www.serverless-devs.com/serverless-devs/tool#密钥使用顺序与规范
+access: "{{ access }}"
+
+vars:
+  region: "cn-hangzhou" 
+  service_domain: ${env(service_domain)}
+
+services:
+  f5_tts: # 业务名称/模块名称
+    component:  fc    # 组件名称 https://docs.serverless-devs.com/user-guide/aliyun/fc/yaml/readme/
+    actions:          # 自定义执行逻辑
+      pre-deploy:
+        - run: set +e && echo "start deploy ${vars.service_domain} on $server.output.url.custom_domain[0].domain}"
+          path: "s.yaml"
+      post-deploy:  # 在deploy之后运行
+        - run: set +e && echo 'deploy success'
+          path: "s.yaml"
+    props: # 组件的属性值
+      region: ${vars.region}
+      service: 
+        name: "f5_tts"
+        description: 'f5_tts'
+        vpcConfig: auto
+        ossMountConfig: 
+          mountPoints: 
+            - bucketName: f5_tts-test
+              bucketPath: /models
+              endpoint: https://oss-cn-hangzhou-internal.aliyuncs.com
+              mountDir: /mnt/f5_tts-models
+              readOnly: false
+      function:
+        name: "f5_tts-api"
+        description: 'f5_tts api server'
+        version: 'LATEST'
+        codeUri: '.'
+        runtime: custom-container
+        timeout: 7200
+        caPort: 11434
+        environmentVariables:
+          HF_HOME: /mnt/f5_tts-models
+          HF_ENDPOINT: https://hf-mirror.com/
+        customContainerConfig: 
+          image: "registry.cn-hangzhou.aliyuncs.com/dbsnolimit/linux_amd64_f5-tts:main"
+        customHealthCheckConfig:
+          failureThreshold: 120
+          httpGetUrl: /
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          initialDelaySeconds: 10
+        cpu: 2.65
+        memorySize: 8192 # 单位MB
+        diskSize: 512 # 单位MB
+        instanceConcurrency: 200
+        instanceType: fc.gpu.tesla.1 # 函数实例类型，可选值为：e1（弹性实例）、c1（性能实例）、fc.gpu.tesla.1（GPU实例）、fc.gpu.ampere.1 GPU实例）
+        gpuMemorySize: 8192 # 单位MB
+        autoScaling:  
+          minInstances: 0
+          maxInstances: 2  
+          targetConcurrency: 200  # instanceConcurrency * maxInstances
+          rules:  
+            - name: scale-out-cpu  
+              metricType: cpu  
+              metricThreshold: 80  
+              adjustmentType: ChangeInCapacity  
+              adjustmentValue: 1
+            - name: scale-in-cpu 
+              metricType: cpu  
+              metricThreshold: 50  
+              adjustmentType: ChangeInCapacity  
+              adjustmentValue: -1
+            - name: scale-out-memory 
+              metricType: memory  
+              metricThreshold: 80
+              adjustmentType: ChangeInCapacity  
+              adjustmentValue: 1
+            - name: scale-in-memory 
+              metricType: memory  
+              metricThreshold: 50  
+              adjustmentType: ChangeInCapacity  
+              adjustmentValue: -1
+        logConfig:
+          project: 'serverless-log'
+          logstore: 'default'
+      triggers:
+        - name: httpTrigger
+          type: http
+          config:
+            authType: anonymous
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - HEAD
+              - OPTIONS
+      customDomains:
+        - domainName: ${vars.service_domain}
+          protocol: HTTP,HTTPS
+          routeConfigs:
+            - path: /*
+              serviceName: f5_tts
+              functionName: f5_tts-api
+              qualifier: LATEST
+      triggers:
+        - name: httpTrigger
+          type: http
+          config:
+            authType: anonymous
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - HEAD
+              - OPTIONS
